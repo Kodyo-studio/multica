@@ -7,7 +7,7 @@ import { projectListOptions } from "@multica/core/projects/queries";
 import { childIssueProgressOptions } from "@multica/core/issues/queries";
 import { issueSurfaceGanttOptions } from "@multica/core/issues/surface/repository";
 import type { IssueSurfaceQueryPlan } from "@multica/core/issues/surface/query-plan";
-import type { IssueStatus, PropertyFilterValue } from "@multica/core/types";
+import type { IssueStatus, ProjectStatus, PropertyFilterValue } from "@multica/core/types";
 import { useIssueStatuses } from "@multica/core/issue-statuses/hooks";
 import { issueBehavesAsAny, statusColumnKeys, visibleStatusKeys } from "@multica/core/issues";
 import {
@@ -109,6 +109,7 @@ export function useIssueSurfaceData({
   creatorFilters,
   projectFilters,
   includeNoProject,
+  projectStatusFilters,
   labelFilters,
   propertyFilters,
   workingIssueIDs,
@@ -138,6 +139,7 @@ export function useIssueSurfaceData({
   creatorFilters: IssueFilterState["creatorFilters"];
   projectFilters: string[];
   includeNoProject: boolean;
+  projectStatusFilters: ProjectStatus[];
   labelFilters: string[];
   propertyFilters: Record<string, PropertyFilterValue[]>;
   /** Distinct running-task issue ids projected by `/api/working-agents`. */
@@ -149,9 +151,30 @@ export function useIssueSurfaceData({
     ...issueSurfaceGanttOptions(wsId, projectId ?? "", queryPlan),
     enabled: usesGantt,
   });
+  const {
+    data: projectData,
+    refetch: refetchProjects,
+  } = useQuery({
+    ...projectListOptions(wsId),
+    enabled: loadProjects,
+  });
+  const projects = projectData ?? EMPTY_PROJECTS;
+  const projectMap = useMemo(
+    () => new Map(projects.map((project) => [project.id, project])),
+    [projects],
+  );
+  // Only defined once the catalog is actually loaded: `undefined` makes the
+  // project-status predicate a no-op instead of emptying the surface.
+  const projectStatusById = useMemo(
+    () =>
+      loadProjects
+        ? new Map(projects.map((project) => [project.id, project.status]))
+        : undefined,
+    [loadProjects, projects],
+  );
   const workingFilterContext = useMemo(
-    () => ({ runningIssueIds: workingIssueIDs }),
-    [workingIssueIDs],
+    () => ({ runningIssueIds: workingIssueIDs, projectStatusById }),
+    [projectStatusById, workingIssueIDs],
   );
   const bucketedIssues = serverStatusBranches.enabled
     ? serverStatusBranches.issues
@@ -179,6 +202,7 @@ export function useIssueSurfaceData({
       creatorFilters,
       projectFilters,
       includeNoProject,
+      projectStatusFilters,
       labelFilters,
       propertyFilters,
       workingOnly: agentRunningFilter,
@@ -193,6 +217,7 @@ export function useIssueSurfaceData({
       labelFilters,
       priorityFilters,
       projectFilters,
+      projectStatusFilters,
       propertyFilters,
       showSubIssues,
       statusFilters,
@@ -288,18 +313,6 @@ export function useIssueSurfaceData({
     refetch: refetchChildProgress,
   } = useQuery(childIssueProgressOptions(wsId));
   const childProgressMap = childProgressData ?? EMPTY_CHILD_PROGRESS;
-  const {
-    data: projectData,
-    refetch: refetchProjects,
-  } = useQuery({
-    ...projectListOptions(wsId),
-    enabled: loadProjects,
-  });
-  const projects = projectData ?? EMPTY_PROJECTS;
-  const projectMap = useMemo(
-    () => new Map(projects.map((project) => [project.id, project])),
-    [projects],
-  );
   const resolveTableExportLookups = useCallback(
     async (needs: { projects: boolean; childProgress: boolean }) => {
       const [projectResult, progressResult] = await Promise.all([
@@ -359,6 +372,8 @@ export function useIssueSurfaceData({
       creatorFilters,
       projectFilters,
       includeNoProject,
+      projectStatusFilters,
+      projectStatusById,
       labelFilters,
       propertyFilters,
       showSubIssues,
@@ -373,6 +388,8 @@ export function useIssueSurfaceData({
       propertyFilters,
       priorityFilters,
       projectFilters,
+      projectStatusById,
+      projectStatusFilters,
       showSubIssues,
       workingIssueIDs,
     ],
