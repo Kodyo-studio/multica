@@ -78,6 +78,7 @@ import type {
 } from "@multica/core/types";
 import { formatActorRef, isActorPropertyType, isFilterablePropertyType, isScalarPropertyType, propertyFilterValueKey, PROPERTY_FILTER_OP_SYMBOLS, PROPERTY_FILTER_OPS_BY_TYPE, type PropertyFilterOp, type PropertyFilterValue } from "@multica/core/types";
 import { ProjectIcon } from "../../projects/components/project-icon";
+import { useProjectStatusLabels } from "../../projects/components/labels";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { PropertyIcon } from "../../common/property-icon";
 import { sortDirectionLabelKey } from "../utils/sort-direction";
@@ -613,7 +614,7 @@ function ProjectStatusSubContent({
   fixedStatuses?: Set<string>;
   fixedTitle?: string;
 }) {
-  const { t } = useT("issues");
+  const statusLabels = useProjectStatusLabels();
   return (
     <div className="p-1">
       {PROJECT_STATUS_ORDER.map((status) => {
@@ -632,7 +633,7 @@ function ProjectStatusSubContent({
             <span
               className={`size-2 rounded-full ${PROJECT_STATUS_CONFIG[status].dotColor}`}
             />
-            {t(($) => $.filters.project_status[status])}
+            {statusLabels[status]}
           </DropdownMenuCheckboxItem>
         );
       })}

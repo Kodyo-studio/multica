@@ -38,6 +38,7 @@ import { useViewStore, useViewStoreApi } from "@multica/core/issues/stores/view-
 import { StatusIcon } from "./status-icon";
 import { PriorityIcon } from "./priority-icon";
 import { ActorAvatar } from "../../common/actor-avatar";
+import { useProjectStatusLabels } from "../../projects/components/labels";
 import { useT } from "../../i18n";
 
 /** One rendered chip: a dimension with its selected values summarised. */
@@ -182,6 +183,7 @@ function useFilterChips(
   baseline?: IssueViewBaseline,
 ) {
   const { t } = useT("issues");
+  const projectStatusLabels = useProjectStatusLabels();
   const wsId = useWorkspaceId();
   const resolveStatusLabel = useStatusLabel(wsId);
   const { categoryOf, colorOf, iconOf } = useIssueStatuses(wsId);
@@ -469,7 +471,7 @@ function useFilterChips(
         </IconStack>
       ),
       value: summarize(
-        deltaProjectStatuses.map((status) => t(($) => $.filters.project_status[status])),
+        deltaProjectStatuses.map((status) => projectStatusLabels[status]),
       ),
       onRemove: () => clearDimension("projectStatus"),
     });
